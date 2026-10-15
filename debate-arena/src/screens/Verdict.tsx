@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import type { GameView, Side } from "../../shared/types";
-import { api } from "../lib/api";
+import { api, reportError } from "../lib/api";
 import { sfx } from "../lib/sfx";
 import { CATS, FLAG_META, SIDE, fighter, total } from "../lib/sides";
 import { Avatar, Button, MuteButton, useElapsed } from "../components/ui";
@@ -10,7 +10,7 @@ import { Num } from "./Arena";
 
 const T = { title: 0, rows: 900, row: 650, totals: 3800, winner: 5600, words: 7000, crowd: 8300, actions: 9000 };
 
-export function Verdict({ state }: { state: GameView }) {
+export function Verdict({ state, onOpenStage }: { state: GameView; onOpenStage: () => void }) {
   const v = state.verdict!;
   const t = useElapsed(state.phaseStartedAt, 60);
   const [busy, setBusy] = useState(false);
@@ -86,6 +86,7 @@ export function Verdict({ state }: { state: GameView }) {
           {state.topic}
         </div>
         <div className="topbar__right">
+          <button className="stage-trigger" onClick={onOpenStage} disabled={!state.groupGuid}>Live stage</button>
           <MuteButton />
         </div>
       </header>
@@ -161,15 +162,15 @@ export function Verdict({ state }: { state: GameView }) {
           <motion.div className="verdict__actions" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Button
               big
-              disabled={busy}
+              disabled={busy || state.hostUid !== state.me?.uid}
               onClick={async () => {
                 setBusy(true);
-                await api("rematch").catch(() => setBusy(false));
+                await api("rematch").catch(reportError).finally(() => setBusy(false));
               }}
             >
               🔁 Rematch, swap sides
             </Button>
-            <Button variant="ghost" big disabled={busy} onClick={() => void api("reset")}>
+            <Button variant="ghost" big disabled={busy || state.hostUid !== state.me?.uid} onClick={() => void api("reset").catch(reportError)}>
               New lineup
             </Button>
           </motion.div>
