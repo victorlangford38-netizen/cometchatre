@@ -1,6 +1,6 @@
 import { CometChat } from "@cometchat/chat-sdk-javascript";
 import { CometChatUIKit, UIKitSettingsBuilder } from "@cometchat/chat-uikit-react";
-import type { AppConfig } from "./api";
+import { roomId, type AppConfig } from "./api";
 
 let initialized: Promise<unknown> | null = null;
 
@@ -9,7 +9,7 @@ export function initCometChat(cfg: AppConfig) {
     new UIKitSettingsBuilder()
       .setAppId(cfg.appId)
       .setRegion(cfg.region)
-      .setAuthKey(cfg.authKey)
+      .setAuthKey("")
       .subscribePresenceForAllUsers()
       // Per-tab sessions so several players can share one browser.
       .setStorageMode(CometChat.StorageMode.SESSION)
@@ -18,16 +18,17 @@ export function initCometChat(cfg: AppConfig) {
   return initialized;
 }
 
-export async function loginAs(uid: string) {
+export async function loginAs(uid: string, authToken: string) {
   const current = CometChatUIKit.getLoggedInUser();
   if (current?.getUid() === uid) return current;
   if (current) await CometChatUIKit.logout();
-  return CometChatUIKit.login(uid);
+  return CometChatUIKit.loginWithAuthToken(authToken);
 }
 
-const seatKey = `${location.pathname}:seat`;
+const seatKey = () => `arena-seat:${roomId() ?? "new"}`;
+type Seat = { uid: string; name: string; authToken: string };
 export const seatStore = {
-  get: (): { uid: string; name: string } | null => JSON.parse(sessionStorage.getItem(seatKey) ?? "null"),
-  set: (seat: { uid: string; name: string }) => sessionStorage.setItem(seatKey, JSON.stringify(seat)),
-  clear: () => sessionStorage.removeItem(seatKey),
+  get: (): Seat | null => { try { return JSON.parse(sessionStorage.getItem(seatKey()) ?? "null"); } catch { return null; } },
+  set: (seat: Seat) => sessionStorage.setItem(seatKey(), JSON.stringify(seat)),
+  clear: () => sessionStorage.removeItem(seatKey()),
 };
