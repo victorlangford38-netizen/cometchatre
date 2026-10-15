@@ -55,6 +55,7 @@ export function createLlm(cfg: LlmConfig) {
     if (cfg.provider === "anthropic") {
       const res = await fetch(`${cfg.baseUrl}/messages`, {
         method: "POST",
+      signal: AbortSignal.timeout(18000),
         headers: {
           "x-api-key": cfg.apiKey,
           "anthropic-version": "2023-06-01",
@@ -75,6 +76,7 @@ export function createLlm(cfg: LlmConfig) {
 
     const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
       method: "POST",
+      signal: AbortSignal.timeout(18000),
       headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: cfg.model,

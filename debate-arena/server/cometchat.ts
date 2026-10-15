@@ -24,6 +24,7 @@ export function createCometChatRest(cfg: CometChatConfig) {
   async function req<T = any>(method: string, path: string, body?: unknown, onBehalfOf?: string): Promise<T> {
     const res = await fetch(base + path, {
       method,
+      signal: AbortSignal.timeout(8000),
       headers: {
         apikey: cfg.restKey,
         "Content-Type": "application/json",
@@ -40,6 +41,9 @@ export function createCometChatRest(cfg: CometChatConfig) {
   }
 
   return {
+    createToken(uid: string) { return req<{ authToken: string }>("POST", `/users/${uid}/auth_tokens`, {}); },
+    getMessage(id: string) { return req("GET", `/messages/${encodeURIComponent(id)}`); },
+
     async upsertUser(uid: string, name: string, avatar?: string, metadata?: Record<string, unknown>) {
       try {
         return await req("PUT", `/users/${uid}`, { name, avatar, metadata });
@@ -55,7 +59,7 @@ export function createCometChatRest(cfg: CometChatConfig) {
       return req("POST", "/groups", {
         guid,
         name,
-        type: "public",
+        type: "private",
         icon: opts.icon,
         owner: opts.owner,
         members: { participants, admins: opts.admins ?? [] },
