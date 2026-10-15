@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { GameView, Role, Side } from "../../shared/types";
-import { api } from "../lib/api";
+import { api, roomId } from "../lib/api";
 import { sfx } from "../lib/sfx";
-import { REC } from "../lib/rec";
 import { SIDE, fighter } from "../lib/sides";
 import { Avatar, Button, MuteButton } from "../components/ui";
 
@@ -15,8 +14,8 @@ function Podium({ state, side, joined, onTake }: { state: GameView; side: Side; 
     <motion.button
       className={`seat seat--${side} ${f ? "seat--taken" : ""} ${mine ? "seat--me" : ""}`}
       onClick={() => onTake(side)}
-      disabled={!joined || !!mine}
-      whileHover={joined && !mine ? { y: -4 } : undefined}
+      disabled={!joined || !!mine || !!f}
+      whileHover={joined && !f ? { y: -4 } : undefined}
       initial={{ opacity: 0, x: side === "pro" ? -40 : 40 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ type: "spring", stiffness: 160, damping: 18, delay: 0.15 }}
@@ -29,7 +28,7 @@ function Podium({ state, side, joined, onTake }: { state: GameView; side: Side; 
           <motion.div key={f.uid} className="seat__who" initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.4, opacity: 0 }}>
             <Avatar src={f.avatar} color={s.color} size={84} glow />
             <b>{f.name}</b>
-            {mine ? <em>that's you</em> : joined && <em>click to challenge for this podium</em>}
+            {mine ? <em>that's you</em> : joined && <em>podium occupied</em>}
           </motion.div>
         ) : (
           <motion.div key="empty" className="seat__empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -43,6 +42,8 @@ function Podium({ state, side, joined, onTake }: { state: GameView; side: Side; 
 }
 
 export function Lobby({ state, joined, onJoin, llm }: { state: GameView; joined: boolean; onJoin: (name: string) => Promise<void>; llm: string }) {
+  const [copied, setCopied] = useState(false);
+  const isHost = state.hostUid === state.me?.uid;
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -71,7 +72,7 @@ export function Lobby({ state, joined, onJoin, llm }: { state: GameView; joined:
   const take = (role: Role) => {
     if (!joined || !state.me || state.phase !== "lobby") return;
     sfx.pop();
-    void api("role", { uid: state.me.uid, role });
+    void run(() => api("role", { role }));
   };
 
   return (
@@ -131,7 +132,7 @@ export function Lobby({ state, joined, onJoin, llm }: { state: GameView; joined:
 
         <div className="lobby__actions">
           {state.phase !== "lobby" && !joined ? (
-            <div className="notice">A debate is live right now. Join the next one.</div>
+            <div className="notice">A debate is live right now. You can join this room when the host returns to the lobby.</div>
           ) : !joined ? (
             <form
               className="join"
@@ -142,19 +143,26 @@ export function Lobby({ state, joined, onJoin, llm }: { state: GameView; joined:
             >
               <input autoFocus maxLength={18} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
               <Button big disabled={busy || !name.trim()}>
-                Enter the arena
+                {roomId() ? "Join this arena" : "Create an arena"}
               </Button>
             </form>
           ) : (
             <>
-              <Button big disabled={busy || !ready || state.phase !== "lobby"} onClick={() => void run(() => api("start"))}>
-                {state.phase === "setup" ? "Setting the stage…" : ready ? "🎰 Spin the motion" : "Waiting for two debaters…"}
+              <Button big disabled={busy || !ready || !isHost || state.phase !== "lobby"} onClick={() => void run(() => api("start"))}>
+                {state.phase === "setup" ? "Setting the stage…" : !isHost ? "Waiting for the host…" : ready ? "🎰 Spin the motion" : "Waiting for two debaters…"}
               </Button>
-              {!REC && (
-                <div className="hint">
-                  Invite a rival: open <code>{location.host}</code> in another tab or device.
+              <div className="invite-panel">
+                <span className="hint">{isHost ? "You are the host" : "Private arena"} · Invite a rival or your crowd</span>
+                <div className="invite-panel__link">
+                  <input aria-label="Invitation link" readOnly value={location.href} onFocus={e => e.target.select()} />
+                  <Button variant="ghost" onClick={() => void run(async () => {
+                    await navigator.clipboard.writeText(location.href);
+                    setCopied(true); setTimeout(() => setCopied(false), 2500);
+                  })}>{copied ? "Copied!" : "Copy invite"}</Button>
                 </div>
-              )}
+                <small>Up to 10 people. Anyone with this link can join before the debate starts. Room expires after 24 hours.</small>
+                <button className="chip chip--ghost" onClick={() => void run(async () => { await api("leave"); sessionStorage.removeItem(`arena-seat:${roomId()}`); location.assign("/"); })}>Leave arena</button>
+              </div>
             </>
           )}
           {err && <div className="error-text">{err}</div>}

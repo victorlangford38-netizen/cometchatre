@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CometChat } from "@cometchat/chat-sdk-javascript";
 import { CometChatMessageComposer, CometChatMessageList, useCometChatEvents } from "@cometchat/chat-uikit-react";
-import { api } from "../lib/api";
+import { api, reportError } from "../lib/api";
 
 type Entity = { group: CometChat.Group } | { user: CometChat.User };
 
@@ -91,8 +91,6 @@ export function ChatPanel({
           <CometChatMessageComposer
             {...entity}
             placeholder={placeholder}
-            hideAttachmentButton
-            hideVoiceRecordingButton
             hideStickersButton
             disableTypingEvents
             disableMentions
@@ -112,7 +110,7 @@ export function MessageReporter({ uid }: { uid: string }) {
       if (e.type !== "ui:message/sent" || String(e.status) !== "success") return;
       const m = e.message;
       if (!(m instanceof CometChat.TextMessage)) return;
-      void api("message", { uid, receiverType: m.getReceiverType(), receiver: m.getReceiverId(), text: m.getText() });
+      void api("message", { id: m.getId() }).catch(reportError);
     },
     [uid],
   );

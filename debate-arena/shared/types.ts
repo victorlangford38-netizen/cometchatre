@@ -48,6 +48,8 @@ export interface RoundInfo {
 }
 
 export interface GameView {
+  roomId?: string | null;
+  hostUid?: string | null;
   phase: Phase;
   phaseStartedAt: number;
   phaseEndsAt: number | null;

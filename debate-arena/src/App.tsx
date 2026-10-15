@@ -2,51 +2,50 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CometChatProvider } from "@cometchat/chat-uikit-react";
 import type { GameView } from "../shared/types";
-import { api, useGameState } from "./lib/api";
+import { api, useGameState, roomId, guestToken, enterRoom } from "./lib/api";
 import { loginAs, seatStore } from "./lib/cometchat";
 import { MessageReporter } from "./components/ChatPanel";
 import { Lobby } from "./screens/Lobby";
 import { Spin, Faceoff } from "./screens/Show";
 import { Arena } from "./screens/Arena";
 import { Verdict } from "./screens/Verdict";
+import { LiveStage } from "./components/LiveStage";
 
 export function App({ llm }: { llm: string }) {
+  const [stageOpen, setStageOpen] = useState(false);
   const [seat, setSeat] = useState(seatStore.get());
   const [chatReady, setChatReady] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const state = useGameState<GameView>(seat?.uid ?? null);
 
+  const [connection, setConnection] = useState("");
   useEffect(() => {
-    if (!state || !seat || state.me || state.phase !== "lobby") return;
-    api("join", { name: seat.name, uid: seat.uid })
-      .then((s) => {
-        const next = { uid: s.uid, name: s.name };
-        seatStore.set(next);
-        setSeat(next);
-      })
-      .catch(() => {
-        seatStore.clear();
-        setSeat(null);
-      });
-  }, [state?.me, state?.phase, seat]);
+    const connect = (e: Event) => setConnection((e as CustomEvent).detail);
+    const fail = (e: Event) => setError((e as CustomEvent).detail);
+    window.addEventListener("arena-connection", connect);
+    window.addEventListener("arena-error", fail);
+    return () => { window.removeEventListener("arena-connection", connect); window.removeEventListener("arena-error", fail); };
+  }, []);
 
   useEffect(() => {
     if (!seat) return;
     setChatReady(null);
-    loginAs(seat.uid)
+    loginAs(seat.uid, seat.authToken)
       .then(() => setChatReady(seat.uid))
       .catch((e) => setError(`CometChat login failed: ${e?.message ?? e}`));
   }, [seat?.uid]);
 
   const join = async (name: string) => {
-    const s = await api("join", { name });
-    const next = { uid: s.uid, name: s.name };
+    const token = guestToken();
+    const id = roomId() ?? crypto.randomUUID().replaceAll("-", "");
+    const s = await api(roomId() ? "join" : "create", { name, room: id });
+    enterRoom(s.roomId, token);
+    const next = { uid: s.uid, name: s.name, authToken: s.authToken };
     seatStore.set(next);
     setSeat(next);
   };
 
-  if (error) return <div className="screen center error">{error}</div>;
-  if (!state) return <div className="backdrop" />;
+  if (!state) return <div className="screen center"><p role="status">{connection || "Opening the arena…"}</p>{connection && <a href="/">Create a new arena</a>}</div>;
 
   const inRoom = !!(seat && state.me && chatReady === seat.uid);
   const p = state.phase;
@@ -70,9 +69,9 @@ export function App({ llm }: { llm: string }) {
         ) : p === "faceoff" ? (
           <Faceoff state={state} />
         ) : p === "verdict" ? (
-          <Verdict state={state} />
+          <Verdict state={state} onOpenStage={() => setStageOpen(true)} />
         ) : (
-          <Arena state={state} />
+          <Arena state={state} onOpenStage={() => setStageOpen(true)} />
         )}
       </motion.div>
     </AnimatePresence>
@@ -80,6 +79,7 @@ export function App({ llm }: { llm: string }) {
 
   return (
     <>
+      {(connection || error) && <div className="connection-notice" role="status">{error || connection}{error && <button onClick={() => { setError(null); location.reload(); }}>Retry</button>} <a href="/">New arena</a></div>}
       <div className="backdrop">
         <div className="beam beam--l" />
         <div className="beam beam--r" />
@@ -88,6 +88,7 @@ export function App({ llm }: { llm: string }) {
         <CometChatProvider theme="dark" config={{ hideReceipts: true }}>
           <MessageReporter uid={seat!.uid} />
           {content}
+          {stageOpen && state.groupGuid && <LiveStage key={state.groupGuid} state={state} onClose={() => setStageOpen(false)} />}
         </CometChatProvider>
       ) : (
         content

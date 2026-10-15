@@ -1516,3 +1516,13 @@ code {
     font-size: 21px;
   }
 }
+
+/* Room controls follow the existing arena palette and type. */
+.invite-panel { display: grid; gap: 10px; width: min(100%, 540px); text-align: center; }
+.invite-panel__link { display: flex; gap: 8px; }
+.invite-panel__link input { min-width: 0; flex: 1; padding: 12px; color: #cbd5e1; background: #10151f; border: 1px solid #334155; border-radius: 8px; }
+.invite-panel small { color: #94a3b8; line-height: 1.5; }
+.invite-panel .chip { justify-self: center; }
+.connection-notice { position: fixed; z-index: 9999; top: 0; left: 0; right: 0; background: #312514; color: #fff3d6; padding: 12px 20px; text-align: center; }
+.connection-notice button, .connection-notice a { margin-left: 16px; color: inherit; text-decoration: underline; }
+@media(max-width: 480px) { .invite-panel__link { flex-direction: column; } }

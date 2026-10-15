@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, animate, motion } from "framer-motion";
 import type { Flag, GameView, Side } from "../../shared/types";
-import { api, useFx } from "../lib/api";
+import { api, reportError, useFx } from "../lib/api";
 import { sfx } from "../lib/sfx";
 import { CATS, FLAG_META, HYPE, SIDE, fighter, total } from "../lib/sides";
 import { ChatPanel } from "../components/ChatPanel";
@@ -23,7 +23,7 @@ export function Num({ value, digits = 1 }: { value: number; digits?: number }) {
   return <>{v.toFixed(digits)}</>;
 }
 
-export function Arena({ state }: { state: GameView }) {
+export function Arena({ state, onOpenStage }: { state: GameView; onOpenStage: () => void }) {
   const me = state.me!;
   const mySide = me.role === "crowd" ? null : me.role;
   const [typing, setTyping] = useState<Record<string, number>>({});
@@ -75,6 +75,7 @@ export function Arena({ state }: { state: GameView }) {
           {state.topic}
         </div>
         <div className="topbar__right">
+          <button className="stage-trigger" onClick={onOpenStage} disabled={!state.groupGuid}><span aria-hidden="true">◉</span> Live stage</button>
           <div className="rounds">
             {state.rounds.map((r, i) => (
               <span key={r.name} className={`rounds__pill ${i === state.roundIndex ? "on" : i < state.roundIndex ? "done" : ""}`}>
@@ -137,7 +138,7 @@ export function Arena({ state }: { state: GameView }) {
               guid={state.groupGuid}
               readOnly={!mySide || deliberating}
               placeholder={mySide ? `Argue ${SIDE[mySide].stance}: ${state.topic}` : undefined}
-              onTyping={() => void api("typing", { uid: me.uid })}
+              onTyping={() => void api("typing", { uid: me.uid }).catch(() => {})}
               emptyView={<div className="feed__empty">The floor is open. Make your case.</div>}
             />
           </div>
@@ -316,7 +317,7 @@ function CrowdBar({ state }: { state: GameView }) {
 
   const hype = (side: Side, emoji: string) => {
     sfx.pop();
-    void api("hype", { uid: me.uid, side, emoji });
+    void api("hype", { uid: me.uid, side, emoji }).catch(() => {});
   };
 
   return (
@@ -329,7 +330,7 @@ function CrowdBar({ state }: { state: GameView }) {
               <button
                 key={s}
                 className={`vote-btn vote-btn--${s} ${state.myCrowdVote === s ? "on" : ""}`}
-                onClick={() => void api("vote", { uid: me.uid, side: s })}
+                onClick={() => void api("vote", { uid: me.uid, side: s }).catch(reportError)}
               >
                 I'm with {fighter(state, s)?.name ?? SIDE[s].label}
               </button>
