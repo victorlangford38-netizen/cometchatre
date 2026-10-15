@@ -1,4 +1,4 @@
-import type { CometChatRest } from "./cometchat";
+import type { CometChatRest } from "./cometchat.js";
 
 export interface Seat {
   uid: string;

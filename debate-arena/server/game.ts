@@ -1,7 +1,7 @@
-import type { CreateGame } from "./contracts";
-import { createLobby, dicebear } from "./lobby";
-import { ROUNDS, TOPICS } from "./content";
-import type { Flag, FlagType, GameView, OpenQuestion, Phase, PlayerView, Role, Scores, Side, VerdictView } from "../shared/types";
+import type { CreateGame } from "./contracts.js";
+import { createLobby, dicebear } from "./lobby.js";
+import { ROUNDS, TOPICS } from "./content.js";
+import type { Flag, FlagType, GameView, OpenQuestion, Phase, PlayerView, Role, Scores, Side, VerdictView } from "../shared/types.js";
 
 const JUDGE = "da-judge";
 const SIDES: Side[] = ["pro", "con"];

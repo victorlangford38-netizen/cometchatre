@@ -1,5 +1,5 @@
-import type { CometChatRest } from "./cometchat";
-import type { Llm } from "./llm";
+import type { CometChatRest } from "./cometchat.js";
+import type { Llm } from "./llm.js";
 export type Pace = "demo" | "normal";
 
 export interface Hub {
