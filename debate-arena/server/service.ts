@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
-import { createGame } from "./game";
-import { resolveCometChat } from "./config";
-import { createCometChatRest, type CometChatRest } from "./cometchat";
-import { createLlm, resolveLlmConfig, type Llm } from "./llm";
-import { FileStore, RedisStore, PublicError, type Store, type RoomRecord } from "./store";
-import type { GameView } from "../shared/types";
+import { createGame } from "./game.js";
+import { resolveCometChat } from "./config.js";
+import { createCometChatRest, type CometChatRest } from "./cometchat.js";
+import { createLlm, resolveLlmConfig, type Llm } from "./llm.js";
+import { FileStore, RedisStore, PublicError, type Store, type RoomRecord } from "./store.js";
+import type { GameView } from "../shared/types.js";
 
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const HOST = new Set(["start", "reset", "rematch", "pin"]);

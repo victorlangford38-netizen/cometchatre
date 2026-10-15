@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createService } from "./service";
-import { PublicError } from "./store";
+import { createService } from "./service.js";
+import { PublicError } from "./store.js";
 export function createHandler(env: Record<string, string>) {
   const service = createService(env);
   return async (req: IncomingMessage & { body?: unknown }, res: ServerResponse) => {
