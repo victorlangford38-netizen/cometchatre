@@ -15,5 +15,5 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src", "server", "shared", "vite.config.ts"]
+  "include": ["api", "src", "server", "shared", "vite.config.ts"]
 }
