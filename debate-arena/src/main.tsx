@@ -15,4 +15,4 @@ getConfig().then(async (cfg) => {
   }
   await initCometChat(cfg);
   root.render(<App llm={cfg.llm} />);
-});
+}).catch(() => { root.render(<div className="screen center"><p>The arena could not connect. Please reload to try again.</p><button onClick={() => location.reload()}>Reload</button></div>); });
